@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Time Chart</title>
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js">
+        </script>
+    <script type="text/javascript"
+        src="https://github.com/nagix/chartjs-plugin-colorschemes/releases/download/v0.4.0/chartjs-plugin-colorschemes.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fireworks-js@latest/dist/fireworks.js"></script>
+
+    <style>
+        body {
+            background: rgb(32, 32, 32);
+            color: white;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .col {
+            flex-direction: column;
+        }
+
+        .row {
+            flex-direction: row;
+        }
+
+        .box {
+            border: 1px solid;
+        }
+
+        #latestSignupContainer {
+            width: 100%;
+            align-self: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        h1 {
+            transition: opacity 2s ease;
+        }
+
+        .fade {
+            opacity: 0;
+        }
+
+        .container {
+            z-index: 1;
+        }
+
+        #root {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            z-index: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <div class="container flex box col">
+        <div class="box">
+            <h1>Infographic</h1>
+        </div>
+        <div class="box flex col">
+            <div>
+                <canvas id="myChart"></canvas>
+            </div>
+
+            <div class="box" id="latestSignupContainer">
+                <h1 id="latestSignup"></h1>
+            </div>
+        </div>
+        <div class="box">
+            <h1>Infographic</h1>
+        </div>
+    </div>
+
+</body>
+
+</html>
+
+<html>
+<script type="module">
+    const root = document.getElementById('root')
+    const fireworks = new Fireworks(root)
+    const chart = new Chart("myChart", {
+        type: "pie",
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+            }]
+        },
+        options: {
+            // responsive: true,
+            title: {
+                display: true,
+                text: "Distribution",
+                fontSize: 40,
+                fontColor: "white"
+            },
+            legend: {
+                labels: {
+                    fontColor: 'white'
+                }
+            },
+        }
+    });
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "",
+        authDomain: "",
+        databaseURL: "",
+        projectId: "",
+        storageBucket: "",
+        messagingSenderId: "",
+        appId: ""
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const dataForChart = ref(database, 'REPLACE_ID/Distribution Tracker');
+    const latestSignup = ref(database, 'REPLACE_ID/latestSignup');
+    const latestSignupEl = document.getElementById('latestSignup')
+
+    onValue(dataForChart, (snapshot) => {
+        const data = snapshot.val();
+        const keys = Object.keys(data)
+        const colors = {
+            'theCaféDAO': 'rgb(255, 255, 0)',
+            'SNFTM': 'rgb(66, 133, 244)',
+            'Member': 'rgb(234, 67, 53)',
+            'Member/Lender': 'rgb(70, 189, 198)',
+        }
+
+        const xValues = [
+            'theCaféDAO',
+            'SNFTM',
+            'Member',
+            'Member/Lender',
+        ]
+
+        let yValues = [0, 0, 0, 0]
+        let backgroundColor = xValues.map(x => colors[x])
+
+        for (let i = 0; i < keys.length; i++) {
+            const amount = data[keys[i]]['%Distribution']
+            switch (data[keys[i]].CATEGORY) {
+                case xValues[0]:
+                    yValues[0] += amount
+                    break
+                case xValues[1]:
+                    yValues[1] += amount
+
+                    break
+                case xValues[2]:
+                    yValues[2] += amount
+
+                    break
+                case xValues[3]:
+                    yValues[3] += amount
+            }
+        }
+
+        chart.data.labels = xValues
+        chart.data.datasets[0].data = yValues
+        chart.data.datasets[0].backgroundColor = backgroundColor
+        chart.update()
+    });
+    onValue(latestSignup, (snapshot) => {
+        latestSignupEl.classList.add('fade');
+
+        setTimeout(function () {
+            fireworks.start()
+            latestSignupEl.innerHTML = `New Signup! \n ${snapshot.val()}`
+            latestSignupEl.classList.remove('fade');
+            setTimeout(() => {
+                fireworks.stop()
+            }, 8000)
+        }, 2000);
+    })
+
+</script>
+
+</html>
